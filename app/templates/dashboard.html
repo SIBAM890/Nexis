@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexis Console | Active Surveillance</title>
+    <style>
+        :root {
+            --bg-dark: #050505;
+            --panel-bg: rgba(20, 20, 20, 0.7);
+            --border-color: #333;
+            --highlight: #00ff41;
+            --alert: #ff3333;
+            --text-main: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Consolas', 'Monaco', monospace;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #111 0%, #000 100%);
+        }
+
+        /* HEADER */
+        header {
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 1px solid var(--highlight);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
+            z-index: 100;
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--highlight);
+            letter-spacing: 2px;
+        }
+
+        .status {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .status span {
+            color: var(--highlight);
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* MAIN LAYOUT */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            padding: 20px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+                overflow-y: auto;
+            }
+        }
+
+        /* PANELS */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            /* Fix for nested scrolling */
+        }
+
+        .panel-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #888;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            flex-shrink: 0;
+            /* Don't shrink header */
+        }
+
+        /* INPUTS */
+        input[type="text"] {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #444;
+            color: var(--highlight);
+            padding: 12px;
+            width: 100%;
+            font-family: inherit;
+            margin-bottom: 15px;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--highlight);
+        }
+
+        button {
+            background: var(--highlight);
+            color: #000;
+            border: none;
+            padding: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #fff;
+            box-shadow: 0 0 10px var(--highlight);
+        }
+
+        /* LOGS */
+        #log-window {
+            flex: 1;
+            font-size: 0.85em;
+            color: #aaa;
+            overflow-y: auto;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            margin-top: auto;
+            font-family: 'Courier New', monospace;
+            min-height: 0;
+            /* Enabling scroll */
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-time {
+            color: #555;
+            margin-right: 5px;
+        }
+
+        /* RESULTS AREA */
+        #results-container {
+            overflow-y: auto;
+            padding-right: 10px;
+            flex: 1;
+            /* Take remaining height */
+            min-height: 0;
+            /* Ensure scroll works in flex */
+        }
+
+        /* CARDS */
+        .card {
+            background: rgba(0, 0, 0, 0.6);
+            border-left: 4px solid var(--highlight);
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        .risk-critical {
+            border-left-color: #ff0000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.1);
+        }
+
+        .risk-high {
+            border-left-color: var(--alert);
+        }
+
+        .risk-medium {
+            border-left-color: orange;
+        }
+
+        .risk-low {
+            border-left-color: var(--highlight);
+        }
+
+        .tag {
+            background: #222;
+            padding: 2px 6px;
+            font-size: 0.75em;
+            border-radius: 3px;
+            margin-right: 5px;
+            color: #ccc;
+            border: 1px solid #444;
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand">NEXIS PROTOCOL v1.0</div>
+        <div class="status">SYSTEM <span>ONLINE</span> | ETHICS <span>ACTIVE</span></div>
+    </header>
+
+    <div class="main-grid">
+        <!-- SIDEBAR CONTROLS -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>// Target Acquisition</span>
+                <span style="color:var(--highlight)">READY</span>
+            </div>
+
+            <form id="scanForm">
+                <label style="font-size:0.8em; color:#888; display:block; margin-bottom:5px;">ENTER TARGET
+                    IDENTIFIER</label>
+                <input type="text" id="target" placeholder="username / email" required autocomplete="off">
+                <button type="submit">INITIALIZE SCAN</button>
+            </form>
+
+            <div
+                style="margin-top: 30px; margin-bottom: 10px; font-size: 0.9em; border-bottom: 1px dashed #444; padding-bottom:5px;">
+                OPERATION LOG
+            </div>
+            <div id="log-window">
+                <div class="log-entry">> Awaiting input...</div>
+            </div>
+        </div>
+
+        <!-- MAIN DISPLAY -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>// Intelligence Feed</span>
+                <span>SECURE VIEW</span>
+            </div>
+
+            <div id="loading" style="display:none; text-align:center; padding:50px;">
+                <div style="color:var(--highlight); font-size:1.2em; margin-bottom:10px;">SCANNING GLOBAL NETWORKS</div>
+                <div style="color:#666; font-size:0.9em;">Decrypting Public Signals...</div>
+            </div>
+
+            <div id="results-container">
+                <!-- DYNAMIC CONTENT -->
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script>
+        // --- STRICT UI STATE MACHINE ---
+        // State: 'READY' | 'SCANNING' | 'BLOCKED' | 'RESULTS'
+        window.appState = 'READY';
+
+        // --- ETHICS CONFIGURATION ---
+        const FORBIDDEN_PATTERNS = {
+            "private_ip": /\b(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))/,
+            "ssn": /\b\d{3}-\d{2}-\d{4}\b/,
+            "admin_root": /admin_root/
+        };
+
+        function setAppState(newState) {
+            window.appState = newState;
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results-container');
+            const btn = document.querySelector('button[type="submit"]');
+
+            if (newState === 'READY') {
+                loading.style.display = 'none';
+                results.innerHTML = '';
+                btn.disabled = false;
+                btn.innerText = 'INITIALIZE SCAN';
+            }
+            else if (newState === 'SCANNING') {
+                loading.style.display = 'block';
+                // results.innerHTML = ''; 
+                btn.disabled = true;
+                btn.innerText = 'SCANNING...';
+            }
+            else if (newState === 'BLOCKED') {
+                loading.style.display = 'none';
+                btn.disabled = false;
+                btn.innerText = 'RETRY';
+            }
+            else if (newState === 'RESULTS') {
+                loading.style.display = 'none';
+                btn.disabled = false;
+                btn.innerText = 'INITIALIZE SCAN';
+            }
+        }
+
+        function checkEthicsClient(target) {
+            for (const [key, pattern] of Object.entries(FORBIDDEN_PATTERNS)) {
+                if (pattern.test(target)) {
+                    return `Ethics Safety: Detected sensitive pattern (${key}). Process aborted.`;
+                }
+            }
+            return null;
+        }
+
+        function log(msg) {
+            if (window.appState === 'BLOCKED') return;
+            const win = document.getElementById('log-window');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            win.innerHTML += `<div class="log-entry"><span class="log-time">[${time}]</span> ${msg}</div>`;
+            win.scrollTop = win.scrollHeight;
+        }
+
+        // --- MAIN SUBMIT HANDLER ---
+        document.getElementById('scanForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const loadingDiv = document.getElementById('loading'); // Added as requested
+            const target = document.getElementById('target').value;
+            const graphContainer = document.getElementById('network-graph');
+
+            if (graphContainer) graphContainer.innerHTML = '';
+            document.getElementById('results-container').innerHTML = '';
+
+            // 1. ETHICS PRE-CHECK
+            const clientError = checkEthicsClient(target);
+            if (clientError) {
+                setAppState('BLOCKED');
+                renderEthicsBlock(clientError);
+                return;
+            }
+
+            // 2. SCANNING STATE
+            setAppState('SCANNING');
+            log(`TARGET ACQUIRED: ${target}`);
+            log(`INITIATING BACKEND SCAN...`);
+
+            try {
+                const formData = new FormData();
+                formData.append('target', target);
+
+                // DATA FETCH
+                const response = await fetch('/scan', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                console.log("SCAN DATA:", data);
+
+                // 3. BACKEND ETHICS CHECK
+                if (data.status === 'blocked') {
+                    setAppState('BLOCKED');
+                    renderEthicsBlock(data.error);
+                    return;
+                }
+
+                // 4. TRANSITION TO RESULTS
+                console.log("ENTERING RESULTS STATE");
+                setAppState('RESULTS');
+                renderReport(data);
+                console.log("RENDER COMPLETE");
+                log(`SCAN COMPLETE. DATA RENDERED.`);
+
+            } catch (err) {
+                console.error("SCAN ERROR:", err);
+                loadingDiv.innerHTML = `<div style="color:red">SYSTEM FAILURE: ${err.message}</div>`;
+                log(`ERROR: ${err.message}`);
+                document.querySelector('button[type="submit"]').disabled = false;
+            }
+        };
+
+        function renderEthicsBlock(reason) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = `
+                <div style="background: rgba(255,0,0,0.1); border: 2px solid red; padding: 40px; text-align: center; border-radius: 8px; margin-top: 20px;">
+                    <div style="font-size: 3em; margin-bottom: 10px;">🚫</div>
+                    <h2 style="color: red; margin: 0 0 10px 0;">ACCESS DENIED</h2>
+                    <p style="color: #fff; font-size: 1.2em;">ETHICS PROTOCOL DETECTED RESTRICTED TARGET</p>
+                    <div style="background: #000; color: red; padding: 10px; margin-top: 20px; font-family: monospace;">
+                        REASON: ${reason}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Add random [NEW] badges to simulate memory/change detection
+        function getChangeIndicator() {
+            return Math.random() > 0.7 ? `<span style="background:#0044ff; color:white; padding:2px 4px; font-size:0.7em; border-radius:3px; margin-left:5px;">NEW</span>` : '';
+        }
+
+        function renderReport(data) {
+            const container = document.getElementById('results-container');
+
+            // Add Top Control Bar
+            container.innerHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px dashed #333; padding-bottom:10px;">
+                     <div style="font-size:0.8em; color:#666;">
+                        AUTONOMOUS CYCLE: <span style="color:var(--highlight)">ACTIVE</span> | LAST SCAN: <span style="color:#aaa">WAITING...</span>
+                     </div>
+                     <div style="font-size:0.8em; color:#888;">
+                        MODE: <span style="border:1px solid #444; padding:2px 5px; color:#fff; background:#222;">LIVE SIMULATION</span>
+                     </div>
+                </div>
+            `;
+
+            // ETHICS BANNER
+            container.innerHTML += `<div style="background:rgba(0, 255, 65, 0.1); border:1px solid var(--highlight); padding:10px; margin-bottom:20px; text-align:center; color:var(--highlight); font-size:0.9rem;">
+                <strong>🛡️ ETHICAL GUARDRAILS ACTIVE</strong><br>
+                Scanning Public Data Sources Only. No Private Interactions.
+            </div>`;
+
+            // VISUAL INTELLIGENCE GRAPH CONTAINER
+            container.innerHTML += `<div style="margin-bottom:20px;">
+                <div style="color:#888; border-bottom:1px solid #333; margin-bottom:10px;">INTELLIGENCE GRAPH</div>
+                <div id="network-graph" style="height: 300px; border:1px solid #333; background: rgba(0,0,0,0.3); border-radius:4px;"></div>
+            </div>`;
+
+            // RENDER GRAPH
+            renderGraph(data);
+
+            // RISK
+            const riskLevel = data.risk_assessment.level;
+            const riskScore = data.risk_assessment.quantitative_score;
+            const riskClass = `risk-${riskLevel.toLowerCase()}`;
+
+            let riskColor = '#00ff41'; // Low
+            if (riskScore > 30) riskColor = 'orange';
+            if (riskScore > 70) riskColor = '#ff3333';
+
+            const headerHtml = `<div class="card ${riskClass}">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0;">⚠️ ASSESSMENT: ${riskLevel.toUpperCase()} RISK</h3>
+                    <div style="text-align:right;">
+                        <span style="font-size:1.5em; font-weight:bold; color:${riskColor};">${riskScore}/100</span>
+                    </div>
+                </div>
+                
+                <div style="margin:15px 0; background:#333; height:8px; border-radius:4px; position:relative; overflow:hidden;">
+                    <div style="width:${riskScore}%; height:100%; background:${riskColor}; box-shadow:0 0 10px ${riskColor}; transition:width 1s;"></div>
+                </div>
+
+                <div style="margin:5px 0 0 0; color:#ccc; font-size:0.9em;">
+                    <strong>RISK FACTOR BREAKDOWN:</strong>
+                    <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+                        ${data.risk_assessment.score_logic.map(r => `
+                            <div style="background:rgba(255,255,255,0.1); padding:5px 10px; border-left:3px solid ${riskColor}; border-radius:3px; font-size:0.85em;">
+                                ${r}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>`;
+            container.innerHTML += headerHtml;
+
+            // REVERSE OSINT
+            if (data.reverse_osint) {
+                const rev = data.reverse_osint;
+                const isHigh = rev.status.includes('Possible');
+                const gaugeColor = isHigh ? 'orange' : '#00ff41';
+                const gaugeWidth = isHigh ? '75%' : '25%';
+
+                container.innerHTML += `<div class="card" style="border-left-color: ${gaugeColor}; border-style: double;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                         <h3>👁️ REVERSE SURVEILLANCE: ${rev.status.toUpperCase()}</h3>
+                         <div style="font-size:0.8em; color:#888;">INDEXABILITY GAUGE</div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:10px; margin:10px 0;">
+                        <div style="flex:1; background:#222; height:12px; border-radius:6px; border:1px solid #444; position:relative;">
+                            <div style="width:${gaugeWidth}; height:100%; background:${gaugeColor}; border-radius:5px; transition:width 1s;"></div>
+                        </div>
+                        <div style="font-weight:bold; color:${gaugeColor};">${isHigh ? 'HIGH' : 'LOW'}</div>
+                    </div>
+
+                    <ul>${rev.inferences.map(i => `<li>${i}</li>`).join('')}</ul>
+                    <div style="border-top:1px dashed #444; margin-top:10px; padding-top:5px; font-size:0.7em; color:#888;">
+                        METHOD: ${rev.methodology}
+                    </div>
+                </div>`;
+            }
+
+            // CORRELATIONS
+            if (data.correlations && data.correlations.length > 0) {
+                container.innerHTML += `<div style="margin:20px 0 10px 0; border-bottom:1px solid #333; color:#888;">IDENTITY LINKING</div>`;
+                data.correlations.forEach(group => {
+                    container.innerHTML += `<div class="card" style="border-left-color: #0088ff;">
+                        <div><strong>PRIMARY ID:</strong> ${group.primary.value} <span class="tag">${group.primary.source}</span></div>
+                        ${group.related.map(r => `<div style="margin-left:20px; margin-top:10px; border-left:1px solid #444; padding: 5px 0 5px 10px;">
+                            └─ <strong>LINKED:</strong> ${r.signal.value} <span class="tag">${r.signal.source}</span> 
+                            <span style="float:right; color:#0088ff; border:1px solid #0088ff; padding:2px 5px; font-size:0.8em;">${r.strength} (${Math.round(r.confidence * 100)}%)</span>
+                            <div style="font-size:0.8em; color:#aaa; margin-top:3px;"><i>REASON: ${r.reason}</i></div>
+                            <div style="font-size:0.7em; color:#666;">LOGIC: ${r.logic_method}</div>
+                        </div>`).join('')}
+                    </div>`;
+                });
+            }
+
+            // RAW SIGNALS
+            container.innerHTML += `<div style="margin:20px 0 10px 0; border-bottom:1px solid #333; color:#888;">RAW INTELLIGENCE</div>`;
+            data.signals.forEach(s => {
+                const fmtContext = s.context.replace(/\n/g, '<br>');
+                const newBadge = getChangeIndicator();
+
+                container.innerHTML += `<div class="card" style="border-left-width:2px; padding:10px;">
+                    <div style="margin-bottom:5px;">
+                        <span class="tag">${s.source}</span>
+                        <span class="tag">${s.type}</span>
+                        <span style="color:white; font-weight:bold; margin-left:10px;">${s.value} ${newBadge}</span>
+                    </div>
+                    
+                    <div style="font-size:0.85em; color:#ddd; margin-top:5px; padding-left:10px; border-left:2px solid #333;">
+                        ${fmtContext}
+                    </div>
+                    
+                    <!-- Evidence Block -->
+                    <div style="background:rgba(255,255,255,0.05); padding:5px; margin-top:8px; font-size:0.75em; border:1px solid #333;">
+                        <div style="color:#00ff41; margin-bottom:2px;">PROOF: ${s.evidence}</div>
+                        <div style="color:#888;">METHOD: ${s.detection_method}</div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function renderGraph(data) {
+            const nodes = new vis.DataSet([]);
+            const edges = new vis.DataSet([]);
+            const processedNodes = new Set();
+
+            // 1. Add Target Node (Hypothetical Root)
+            // Ideally we'd know the input, but we can infer or just graph the signals
+            // Let's create a 'Target' node based on the first signal or input
+
+            // Helper to add node
+            const addNode = (id, label, group) => {
+                if (!processedNodes.has(id)) {
+                    let color = '#97c2fc';
+                    let shape = 'dot';
+                    if (group === 'main') { color = '#00ff41'; shape = 'diamond'; size = 30; }
+                    if (group === 'platform') { color = '#fb7e81'; shape = 'dot'; }
+                    if (group === 'signal') { color = '#ffbf00'; shape = 'dot'; }
+
+                    nodes.add({ id: id, label: label, color: color, shape: shape, font: { color: '#fff' } });
+                    processedNodes.add(id);
+                }
+            };
+
+            // 2. Process Correlations as Main Links
+            if (data.correlations) {
+                data.correlations.forEach((group, idx) => {
+                    const primId = group.primary.value;
+                    addNode(primId, primId + `\n(${group.primary.source})`, 'main');
+
+                    group.related.forEach(rel => {
+                        const relId = rel.signal.value;
+                        addNode(relId, relId + `\n(${rel.signal.source})`, 'signal');
+                        edges.add({ from: primId, to: relId, label: rel.strength, length: 150, color: { color: '#0088ff' } });
+                    });
+                });
+            }
+
+            // 3. Process Signals if not in correlations
+            data.signals.forEach(s => {
+                const sId = s.value;
+                if (!processedNodes.has(sId)) {
+                    addNode(sId, sId + `\n(${s.source})`, 'signal');
+                }
+            });
+
+            // If we have nodes but no edges (no correlation), try to link by source type or just cluster them?
+            // For visual wow, let's link everything to a central "TARGET" node if no correlations exist
+            if (edges.length === 0 && nodes.length > 0) {
+                const centerId = 'TARGET';
+                addNode(centerId, 'TARGET\nSCOPE', 'main');
+                nodes.forEach(n => {
+                    if (n.id !== centerId) edges.add({ from: centerId, to: n.id });
+                });
+            }
+
+            const container = document.getElementById('network-graph');
+            const graphData = { nodes: nodes, edges: edges };
+            const options = {
+                nodes: {
+                    borderWidth: 2,
+                    shadow: true
+                },
+                edges: {
+                    width: 2,
+                    shadow: true,
+                    color: '#666'
+                },
+                physics: {
+                    stabilization: false,
+                    barnesHut: {
+                        gravitationalConstant: -2000,
+                        springConstant: 0.04,
+                        springLength: 95
+                    }
+                },
+                interaction: {
+                    zoomView: false
+                }
+            };
+            new vis.Network(container, graphData, options);
+        }
+    </script>
+</body>
+
+</html>

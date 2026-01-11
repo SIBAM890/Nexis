@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexis Agent | OSINT Surveillance</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --terminal-green: #00ff41;
+            --alert-red: #ff3333;
+            --mid-gray: #1a1a1a;
+            --text-color: #e0e0e0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        h1 {
+            color: var(--terminal-green);
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--terminal-green);
+            padding-bottom: 10px;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+        }
+
+        .panel {
+            flex: 1;
+            background: var(--mid-gray);
+            padding: 20px;
+            border: 1px solid #333;
+            overflow-y: auto;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #000;
+            border: 1px solid var(--terminal-green);
+            color: var(--terminal-green);
+            font-family: inherit;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: bold;
+            background: #002200;
+        }
+
+        button:hover {
+            background: #004400;
+        }
+
+        .card {
+            background: #000;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--terminal-green);
+        }
+
+        .risk-high {
+            border-left-color: var(--alert-red);
+        }
+
+        .risk-medium {
+            border-left-color: orange;
+        }
+
+        .risk-low {
+            border-left-color: var(--terminal-green);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin-right: 5px;
+        }
+
+        .badge-github {
+            background: #333;
+            color: #fff;
+        }
+
+        .badge-twitter {
+            background: #1da1f2;
+            color: #fff;
+        }
+
+        #ethics-banner {
+            text-align: center;
+            font-size: 0.8em;
+            color: #666;
+            margin-top: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Nexis Agent <span style="font-size:0.5em; opacity:0.7">// Autonomous OSINT System</span></h1>
+
+    <div class="container">
+        <!-- CONTROL PANEL -->
+        <div class="panel" style="flex: 0.5;">
+            <h2>Target Selection</h2>
+            <form id="scanForm">
+                <label>Target Identifier (Username/Email)</label>
+                <input type="text" id="target" name="target" placeholder="e.g. jdoe99" required>
+                <button type="submit">INITIATE SURVEILLANCE SCAN</button>
+            </form>
+
+            <div id="status-log" style="margin-top: 20px; font-size: 0.9em; color: #888;">
+                > System Ready...
+            </div>
+
+            <div style="margin-top: 40px; border: 1px solid #444; padding: 10px;">
+                <h3>Ethics Compliance</h3>
+                <p style="color: var(--terminal-green)">[✓] Module Active</p>
+                <p><small>Scanning is restricted to public data traces only. No intrusion attempts will be made.</small>
+                </p>
+            </div>
+        </div>
+
+        <!-- RESULTS PANEL -->
+        <div class="panel" id="resultsPanel">
+            <h2>Intelligence Report</h2>
+            <div id="loading" style="display:none; color: var(--terminal-green);">
+                > Scanning Networks... <br>
+                > Correlating Identities... <br>
+                > Assessing Exposure...
+            </div>
+
+            <div id="report-content" style="display:none;">
+                <!-- DYNAMIC CONTENT -->
+            </div>
+        </div>
+    </div>
+
+    <div id="ethics-banner">
+        NEXIS AGENT IS A PROOF-OF-CONCEPT TOOL. DO NOT USE FOR ILLEGAL ACTIVITIES.
+    </div>
+
+    <script>
+        document.getElementById('scanForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const target = document.getElementById('target').value;
+            const log = document.getElementById('status-log');
+
+            log.innerHTML += `<br>> Target Acquired: ${target}`;
+            log.innerHTML += `<br>> Dispatching Agents...`;
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('report-content').style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('target', target);
+
+                const response = await fetch('/scan', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                renderReport(data);
+                log.innerHTML += `<br>> Scan Complete.`;
+
+            } catch (err) {
+                log.innerHTML += `<br>> CRITICAL ERROR: ${err.message}`;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        function renderReport(data) {
+            const container = document.getElementById('report-content');
+            container.innerHTML = '';
+            container.style.display = 'block';
+
+            if (data.status === 'blocked') {
+                container.innerHTML = `<div class="card risk-high">
+                    <h3>🚫 ACTION BLOCKED</h3>
+                    <p>${data.error}</p>
+                </div>`;
+                return;
+            }
+
+            // RISK HEADER
+            const riskLevel = data.risk_assessment.level;
+            const riskClass = `risk-${riskLevel.toLowerCase()}`;
+
+            let riskHtml = `<div class="card ${riskClass}">
+                <h3>⚠️ RISK LEVEL: ${riskLevel}</h3>
+                <ul>${data.risk_assessment.score_logic.map(r => `<li>${r}</li>`).join('')}</ul>
+            </div>`;
+            container.innerHTML += riskHtml;
+
+            // DIGITAL TRACES
+            let signalsHtml = `<h3>Detected Signals (${data.signal_count})</h3>`;
+            data.signals.forEach(s => {
+                signalsHtml += `<div class="card">
+                    <span class="badge badge-${s.source}">${s.source}</span>
+                    <strong>${s.type}</strong>: ${s.value}
+                    <div style="font-size:0.8em; color:#888; margin-top:5px;">${s.context}</div>
+                </div>`;
+            });
+            container.innerHTML += signalsHtml;
+
+            // CORRELATIONS
+            if (data.correlations && data.correlations.length > 0) {
+                let corrHtml = `<h3>🔗 Identity Correlations</h3>`;
+                data.correlations.forEach(group => {
+                    corrHtml += `<div class="card" style="border-left-color: #0088ff;">
+                        <div>Primary: ${group.primary.value}</div>
+                        ${group.related.map(r => `<div style="margin-left:20px;">└─ Linked: ${r.signal.value} (${Math.round(r.confidence * 100)}% match)</div>`).join('')}
+                    </div>`;
+                });
+                container.innerHTML += corrHtml;
+            }
+
+            // REVERSE OSINT (SURVEILLANCE AWARENESS)
+            if (data.reverse_osint) {
+                const rev = data.reverse_osint;
+                const revStatus = rev.status === 'Active' ? 'risk-high' : 'risk-low';
+                let revHtml = `<div class="card ${revStatus}" style="border-left: 5px double var(--terminal-green)">
+                    <h3>👁️ REVERSE OSINT ANALYSIS</h3>
+                    <p><strong>Status:</strong> ${rev.status}</p>
+                    <ul>${rev.inferences.map(i => `<li>${i}</li>`).join('')}</ul>
+                 </div>`;
+                container.innerHTML += revHtml;
+            }
+        }
+    </script>
+</body>
+
+</html>
