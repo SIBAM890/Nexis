@@ -9,3 +9,5 @@ beautifulsoup4>=4.12.3
 # Image Forensics
 Pillow>=10.2.0
 exifread>=3.0.0
+# Production Server
+gunicorn>=21.2.0

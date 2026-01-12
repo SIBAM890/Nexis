@@ -19,4 +19,7 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["python3", "run.py"]
+# Production Entyproint (Gunicorn)
+# -w 4: 4 workers (adjust based on CPU)
+# -b 0.0.0.0:5000: Bind to all interfaces on port 5000
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "run:app"]
