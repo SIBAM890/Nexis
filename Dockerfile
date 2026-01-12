@@ -20,6 +20,6 @@ COPY . .
 EXPOSE 5000
 
 # Production Entyproint (Gunicorn)
-# -w 4: 4 workers (adjust based on CPU)
-# -b 0.0.0.0:5000: Bind to all interfaces on port 5000
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "run:app"]
+# Uses $PORT if configured (Railway/Heroku), defaults to 5000
+ENV PORT=5000
+CMD gunicorn -w 4 -b 0.0.0.0:$PORT run:app
