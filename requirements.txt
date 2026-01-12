@@ -1,9 +1,11 @@
 flask>=3.0.0
-werkzeug>=3.0.0
 requests>=2.31.0
+python-dotenv>=1.0.1
+# Core Utilities
+werkzeug>=3.0.0
+apscheduler>=3.10.4
+# Scraping & parsing
 beautifulsoup4>=4.12.3
+# Image Forensics
 Pillow>=10.2.0
 exifread>=3.0.0
-apscheduler>=3.10.4
-pandas>=2.2.0
-python-dotenv>=1.0.1
